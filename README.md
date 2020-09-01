@@ -1,3 +1,35 @@
+<p align="center">
+    <img src="https://i.loli.net/2019/07/22/5d3559f48053594320.png">
+</p>
+
+<h1 align="center">AutoWeiBan学习助手</h1>
+
+<div align="center">
+
+辅助麦课安全网课学习
+
+![GitHub release](https://img.shields.io/github/release/WeiYuanStudio/AutoWeiBan.svg?style=flat-square)
+![GitHub last commit](https://img.shields.io/github/last-commit/WeiYuanStudio/AutoWeiBan.svg?style=flat-square)
+
+</div>
+
+## 2019.10.14紧急修复
+**版本92898ced**已经修复了登录问题
+官方在近期修改了登录方式，登录请求的POST请求参数被混淆，不知道是官方针对该项目还是仅仅是为了登录安全，反正原帐号密码登录已经失效。  
+现已从二维码登录着手，使用微信扫描二维码登录。 
+
+本次更改官方还修改了查询课程进度的接口，返回的JSON键值更改了，本项目也已经跟进修改了JSON解析的键值。经过本人测试，二维码登录未见异常。  
+不知道在完成课程请求方面是否有改动，这得靠新号测试才能知道。后期将加入更多的log输出方便用户反馈。若遇到任何问题，请发Issues给我。
+
+**备选方案**。
+我的学弟用Java Script开发了一个刷课脚本，如果官方只修改了登录POST请求的话，理论上这个方案也可以的，您可以尝试一下这个方案。
+详情访问：
+
+学弟的WBKiller脚本的git仓库地址
+<https://git.darc.pro/DarcJC/WBKiller>
+
+使用方法链接位于学弟的个人博客
+<https://darc.pro/archives/wbcourse-killer.html>
 
 ## 使用方法
 
