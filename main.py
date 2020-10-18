@@ -4,7 +4,8 @@ import time  # time.sleep延时
 import os  # 兼容文件系统
 import random
 
-tenantCode = '4137011066'  # 院校ID
+tenantCode = '43007012'  # 华中农业大学 院校ID
+#tenantCode = '4137011066'  # 烟台大学 院校ID
 
 
 # 密码登录，已经失效
@@ -25,12 +26,14 @@ def pwLogin():
     time.sleep(2)
 
     randomTimeStamp = random.randint(1E8, 1E12)
-    print('验证码,浏览器打开 https://weiban.mycourse.cn/pharos/login/randImage.do?time=' + str(randomTimeStamp))
+    print('验证码,浏览器打开 https://weiban.mycourse.cn/pharos/login/randImage.do?time=' +
+          str(randomTimeStamp))
 
     verifyCode = input('请输入验证码')
 
     # 登录请求
-    loginResponse = WeiBanAPI.login(account, password, tenantCode, randomTimeStamp, verifyCode, cookie)
+    loginResponse = WeiBanAPI.login(
+        account, password, tenantCode, randomTimeStamp, verifyCode, cookie)
     return loginResponse
 
 
@@ -45,7 +48,16 @@ def main():
     # 补打空cookie
     cookie = ''
 
-    loginResponse = WeiBanAPI.qrLogin()
+    try:
+        loginResponse = WeiBanAPI.qrLogin()
+        taskResponse = WeiBanAPI.getStudyTask(loginResponse['data']['userId'],
+                                              tenantCode,
+                                              cookie)
+        loginResponse['data']["UserProjectId"] = taskResponse['data']['userProjectId']
+    except Exception as e:
+
+        print(e)
+        raise("初始化失败！")
 
     try:
         print('登录成功，userName:' + loginResponse['data']['userName'])
@@ -66,51 +78,54 @@ def main():
               + stuInfoResponse['data']['specialtyName']
               )
         time.sleep(2)
+
     except BaseException:
         print('解析用户信息失败，将尝试继续运行，请注意运行异常')
-
     # 请求课程完成进度
     try:
-        getProgressResponse = WeiBanAPI.getProgress(loginResponse['data']['preUserProjectId'],
+        getProgressResponse = WeiBanAPI.getProgress(loginResponse['data']['UserProjectId'],
                                                     tenantCode,
                                                     cookie)
         print('课程总数：' + str(getProgressResponse['data']['requiredNum']) + '\n'
-              + '完成课程：' + str(getProgressResponse['data']['requiredFinishedNum']) + '\n'
+              + '完成课程：' +
+              str(getProgressResponse['data']['requiredFinishedNum']) + '\n'
               + '结束时间' + str(getProgressResponse['data']['endTime']) + '\n'
               + '剩余天数' + str(getProgressResponse['data']['lastDays'])
               )
         time.sleep(2)
     except BaseException:
         print('解析课程进度失败，将尝试继续运行，请注意运行异常')
-
+    # pdb.set_trace()
     # 请求课程列表
     try:
-        getListCourseResponse = WeiBanAPI.getListCourse(loginResponse['data']['preUserProjectId'],
+        getListCourseResponse = WeiBanAPI.getListCourse(loginResponse['data']['UserProjectId'],
                                                         '3',
                                                         tenantCode,
                                                         cookie)
-        time.sleep(2)
+        time.sleep(4)
     except BaseException:
-        print('请求课程列表失败')
+        raise RuntimeError("请求课程列表失败")
 
     print('解析课程列表并发送完成请求')
 
     for i in getListCourseResponse['data']:
         print('\n----章节码：' + i['categoryCode'] + '章节内容：' + i['categoryName'])
-        NowClass = WeiBanAPI.GetList(loginResponse['data']['preUserProjectId'],
-                                                        i['categoryCode'],
-                                                        '3',
-                                                        tenantCode,
-                                                        '',
-                                                        cookie)
+        NowClass = WeiBanAPI.GetList(loginResponse['data']['UserProjectId'],
+                                     i['categoryCode'],
+                                     '3',
+                                     tenantCode,
+                                     '',
+                                     cookie)
         for j in NowClass['data']:
-            print('课程内容：' + j['resourceName'] + '\nuserCourseId:' + j['userCourseId'])
+            print('课程内容：' + j['resourceName'] +
+                  '\nuserCourseId:' + j['userCourseId'])
 
             if (j['finished'] == 1):
                 print('已完成')
             else:
                 print('发送完成请求')
-                WeiBanAPI.doStudy(loginResponse['data']['preUserProjectId'], j['resourceId'], tenantCode)
+                WeiBanAPI.doStudy(
+                    loginResponse['data']['UserProjectId'], j['resourceId'], tenantCode)
                 WeiBanAPI.finishCourse(j['userCourseId'], tenantCode, cookie)
 
                 delayInt = WeiBanAPI.getRandomTime()
