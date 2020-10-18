@@ -48,8 +48,12 @@ def req(url: str, method: str = "POST", param: dict = None):
     reqst = request.Request(url=url, data=data, method=method)
     responseStream = request.urlopen(reqst)
     responseText = responseStream.read().decode('utf-8')
-    responseJSON = json.loads(responseText)
-    return responseJSON
+    try:
+        responseJSON = json.loads(responseText)
+        return responseJSON
+    except:
+        print(responseText)
+        return None
 
 
 # 获取一个新Cookie

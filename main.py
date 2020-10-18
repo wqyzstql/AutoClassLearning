@@ -4,8 +4,8 @@ import time  # time.sleep延时
 import os  # 兼容文件系统
 import random
 
-# tenantCode = '43007012'  # 华中农业大学 院校ID
-tenantCode = '4137011066'  # 烟台大学 院校ID
+tenantCode = '43007012'  # 华中农业大学 院校ID
+#tenantCode = '4137011066'  # 烟台大学 院校ID
 
 
 # 密码登录，已经失效
