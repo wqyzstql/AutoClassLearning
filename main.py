@@ -1,136 +1,288 @@
-import WeiBanAPI
+import os
 import json
-import time  # time.sleep延时
-import os  # 兼容文件系统
 import random
+import time
+import http.cookiejar
+from urllib import request, parse
 
-tenantCode = '43007012'  # 华中农业大学 院校ID
-#tenantCode = '4137011066'  # 烟台大学 院校ID
+baseDelayTime = 1  # 基础延时秒数
+
+randomDelayDeviation = 1  # 叠加随机延时差
+
+getCookiesURL = 'https://weiban.mycourse.cn/#/login'  # 请求Cookies URL
+
+loginURL = 'https://weiban.mycourse.cn/pharos/login/login.do'  # 登录请求 URL
+
+getNameURL = 'https://weiban.mycourse.cn/pharos/my/getInfo.do'  # 请求姓名 URL
+
+getStudyTaskURL = 'https://weiban.mycourse.cn/pharos/index/getStudyTask.do'  # 请求任务列表URL
+
+getProgressURL = 'https://weiban.mycourse.cn/pharos/project/showProgress.do'  # 请求进度 URL
+
+getListCourseURL = 'https://weiban.mycourse.cn/pharos/usercourse/listCategory.do'  # 请求课程种类 URL
+
+getListURL = 'https://weiban.mycourse.cn/pharos/usercourse/listCourse.do'  # 请求课程列表URL
+
+finishCourseURL = 'https://weiban.mycourse.cn/pharos/usercourse/finish.do'  # 请求完成课程URL
+
+getRandImageURL = 'https://weiban.mycourse.cn/pharos/login/randImage.do'  # 验证码URL
+
+doStudyURL = 'https://weiban.mycourse.cn/pharos/usercourse/study.do'  # 学习课程URL
+
+# 获取验证码以及验证码ID URL
+genQRCodeURL = 'https://weiban.mycourse.cn/pharos/login/genBarCodeImageAndCacheUuid.do'
+
+# 用于二维码登录刷新登录状态
+loginStatusURL = 'https://weiban.mycourse.cn/pharos/login/barCodeWebAutoLogin.do'
 
 
-# 密码登录，已经失效
-def pwLogin():
-    print(
-        '默认院校为烟台大学，ID:' + tenantCode + '\n'
-        + '若有需要，请自行抓包获取院校ID修改' + '\n'
-    )
+def req(url: str, method: str = "POST", param: dict = None, binary=False):
+    data = None
+    if param is not None:
+        if method == "POST":
+            data = bytes(parse.urlencode(param), encoding='utf-8')
+        elif method == "GET":
+            url = url + "?" + parse.urlencode(param)
+        else:
+            raise ValueError("Method {} not supported".format(method))
 
-    # 登录信息输入
-    account = input('请输入账号\n')
-    password = input('请输入密码\n')
+    reqst = request.Request(url=url, data=data, method=method)
+    responseStream = request.urlopen(reqst)
+    if not binary:
+        responseText = responseStream.read().decode('utf-8')
+        try:
+            responseJSON = json.loads(responseText)
+            return responseJSON
+        except:
+            return responseText
+    else:
+        return responseStream.read()
 
-    # 获取Cookies
-    print('\n获取Cookies中')
-    cookie = WeiBanAPI.getCookie()
-    print('Cookies获取成功')
-    time.sleep(2)
 
-    randomTimeStamp = random.randint(1E8, 1E12)
-    print('验证码,浏览器打开 https://weiban.mycourse.cn/pharos/login/randImage.do?time=' +
-          str(randomTimeStamp))
+# 获取一个新Cookie
+def getCookie():
+    cookie = http.cookiejar.CookieJar()
+    handler = request.HTTPCookieProcessor(cookie)
+    opener = request.build_opener(handler)
+    return cookie
 
-    verifyCode = input('请输入验证码')
 
-    # 登录请求
-    loginResponse = WeiBanAPI.login(
-        account, password, tenantCode, randomTimeStamp, verifyCode, cookie)
-    return loginResponse
+# 登录请求 已经失效
+def login(keyNumber, password, tenantCode, randomTimeStamp, verifyCode, cookie):
+    param = {
+        'keyNumber': keyNumber,
+        'password': password,
+        'tenantCode': tenantCode,
+        'time': randomTimeStamp,
+        'verifyCode': verifyCode
+    }
 
+
+def qrLogin():
+    qrCodeID = getQRCode()
+    print(qrCodeID)
+    while True:
+        responseText = getLoginStatus(qrCodeID)
+        responseJSON = json.loads(responseText)
+        if responseJSON['code'] == '0':
+            return responseJSON
+        else:
+            print('未登录，等待后5s刷新')
+            time.sleep(5)
+
+
+# 获取学生信息
+def getStuInfo(userId, tenantCode, cookie):
+    logger('开始请求用户数据')
+    param = {
+        'userId': userId,
+        'tenantCode': tenantCode
+    }
+    return req(getNameURL, "POST", param)
+
+# 获取任务(userProjectId)
+
+
+def getStudyTask(userId, tenantCode, cookie):
+    logger("开始请求用户任务")
+    param = {
+        'userId': userId,
+        'tenantCode': tenantCode
+    }
+    return req(getStudyTaskURL, "POST", param)
+
+
+# 获取课程进度
+def getProgress(userProjectId, tenantCode, cookie):
+    param = {
+        'userProjectId': userProjectId,
+        'tenantCode': tenantCode
+    }
+    return req(getProgressURL, "POST", param)
+
+
+# 获取课程列表
+def getListCourse(userProjectId, chooseType, tenantCode, cookie):
+    param = {
+        'userProjectId': userProjectId,
+        'chooseType': chooseType,
+        'tenantCode': tenantCode,
+    }
+    return req(getListCourseURL, "POST", param)
+
+
+def GetList(userProjectId,  categoryCode, chooseType, tenantCode, name, cookie):
+    param = {
+        'userProjectId': userProjectId,
+        'categoryCode': categoryCode,
+        'chooseType': chooseType,
+        'tenantCode': tenantCode,
+        'name': name
+    }
+    return req(getListURL, "POST", param)
+
+# 完成课程请求
+
+
+def finishCourse(userCourseId, tenantCode, cookie):
+    param = {
+        'userCourseId': userCourseId,
+        'tenantCode': tenantCode,
+    }
+    return req(finishCourseURL, "GET", param)
+
+
+def getRandomTime():
+    return baseDelayTime + random.randint(0, randomDelayDeviation)
+
+
+def doStudy(userProjectId, userCourseId, tenantCode):
+    param = {
+        'userProjectId': userProjectId,
+        'courseId': userCourseId,
+        'tenantCode': tenantCode
+    }
+    return req(doStudyURL, "POST", param)
+
+
+# 获取并返回QRCode 链接以及 QRCode ID
+def getQRCode():
+    rsp = req(genQRCodeURL, "POST")
+    logger('请求二维码 Response:' + json.dumps(rsp))
+    try:
+        import webbrowser
+        webbrowser.open_new_tab(rsp['data']['imagePath'])
+    except:
+        pass
+    print('如果浏览器未自动打开，则请手动在浏览器器中打开下面的二维码登录链接，使用二维码登录（若无法登录请检查是否已经在网页端绑定微信登录功能）')
+    print(rsp['data']['imagePath'] + '\n')
+    return rsp['data']['barCodeCacheUserId']
+
+
+# 用于二维码登录，刷新是否已经成功登录
+def getLoginStatus(qrCodeID):
+    param = {
+        'barCodeCacheUserId': qrCodeID
+    }
+    rsp = req(loginStatusURL, "POST", param)
+    return json.dumps(rsp)
+
+
+def logger(str):
+    print('log >>> ' + str)
+
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
+################################################################################
 
 def main():
     # 显示License
-    licenseFile = open('.' + os.sep + 'LICENSE', encoding='utf-8')
-    print(licenseFile.read())
-    licenseFile.close()
+    with open('.' + os.sep + "LICENSE") as f:
+        print(f.read())
 
-    # 登录
-    # loginResponse = pwLogin()
-    # 补打空cookie
+    # 使用二维码登录
     cookie = ''
-
+    loginResponse = ""
     try:
-        loginResponse = WeiBanAPI.qrLogin()
-        taskResponse = WeiBanAPI.getStudyTask(loginResponse['data']['userId'],
-                                              tenantCode,
-                                              cookie)
-        loginResponse['data']["UserProjectId"] = taskResponse['data']['userProjectId']
+        loginResponse = qrLogin()
+        data = loginResponse['data']
+        userId = data['userId']
+        userName = data['userName']
+        tenantCode = data['tenantCode']
+        taskResponse = getStudyTask(userId, tenantCode, cookie)
+        userProjectId = taskResponse['data']['userProjectId']
     except Exception as e:
+        raise Exception("初始化失败！", loginResponse, "\n", e)
+    else:
+        print('登录成功\n', loginResponse, "\n")
 
-        print(e)
-        raise("初始化失败！")
-
-    try:
-        print('登录成功，userName:' + loginResponse['data']['userName'])
-        time.sleep(2)
-    except BaseException:
-        print('登录失败')
-        print(loginResponse)  # TODO: 这里的loginResponse调用没有考虑网络错误等问题
-        exit(0)
-
-    # 请求解析并打印用户信息
+    # 请求用户信息
+    stuInfoResponse = ""
     try:
         print('请求用户信息')
-        stuInfoResponse = WeiBanAPI.getStuInfo(loginResponse['data']['userId'],
-                                               tenantCode,
-                                               cookie)
-        print('用户信息：' + stuInfoResponse['data']['realName'] + '\n'
-              + stuInfoResponse['data']['orgName']
-              + stuInfoResponse['data']['specialtyName']
-              )
-        time.sleep(2)
+        stuInfoResponse = getStuInfo(userId, tenantCode, cookie)
+        print("用户信息\n", stuInfoResponse, "\n")
+    except Exception as e:
+        raise Exception('解析用户信息失败', stuInfoResponse, "\n", e)
 
-    except BaseException:
-        print('解析用户信息失败，将尝试继续运行，请注意运行异常')
+    ProgressResponse = ""
     # 请求课程完成进度
     try:
-        getProgressResponse = WeiBanAPI.getProgress(loginResponse['data']['UserProjectId'],
-                                                    tenantCode,
-                                                    cookie)
-        print('课程总数：' + str(getProgressResponse['data']['requiredNum']) + '\n'
-              + '完成课程：' +
-              str(getProgressResponse['data']['requiredFinishedNum']) + '\n'
-              + '结束时间' + str(getProgressResponse['data']['endTime']) + '\n'
-              + '剩余天数' + str(getProgressResponse['data']['lastDays'])
-              )
-        time.sleep(2)
-    except BaseException:
-        print('解析课程进度失败，将尝试继续运行，请注意运行异常')
-    # pdb.set_trace()
-    # 请求课程列表
+        ProgressResponse = getProgress(
+            userProjectId, tenantCode, cookie)
+        print("课程进度信息\n", ProgressResponse, "\n")
+    except Exception as e:
+        raise Exception('解析课程进度失败', ProgressResponse, "\n", e)
+
+    ListCourseResponse = ""
+    # 获取当前学习任务的所有章节
     try:
-        getListCourseResponse = WeiBanAPI.getListCourse(loginResponse['data']['UserProjectId'],
-                                                        '3',
-                                                        tenantCode,
-                                                        cookie)
-        time.sleep(4)
-    except BaseException:
-        raise RuntimeError("请求课程列表失败")
-
-    print('解析课程列表并发送完成请求')
-
-    for i in getListCourseResponse['data']:
-        print('\n----章节码：' + i['categoryCode'] + '章节内容：' + i['categoryName'])
-        NowClass = WeiBanAPI.GetList(loginResponse['data']['UserProjectId'],
-                                     i['categoryCode'],
-                                     '3',
-                                     tenantCode,
-                                     '',
-                                     cookie)
-        for j in NowClass['data']:
-            print('课程内容：' + j['resourceName'] +
-                  '\nuserCourseId:' + j['userCourseId'])
-
-            if (j['finished'] == 1):
-                print('已完成')
-            else:
-                print('发送完成请求')
-                WeiBanAPI.doStudy(
-                    loginResponse['data']['UserProjectId'], j['resourceId'], tenantCode)
-                WeiBanAPI.finishCourse(j['userCourseId'], tenantCode, cookie)
-
-                delayInt = WeiBanAPI.getRandomTime()
-                print('\n随机延时' + str(delayInt))
-                time.sleep(delayInt)
+        ListCourseResponse = getListCourse(
+            userProjectId, '3', tenantCode, cookie)
+        print("课程信息\n", ListCourseResponse, "\n")
+    except Exception as e:
+        raise RuntimeError("请求课程列表失败", ListCourseResponse, "\n", e)
+    # 遍历每个章节
+    for chap in ListCourseResponse['data']:
+        code, name = chap['categoryCode'], chap['categoryName']
+        print("当前章节", chap, "\n")
+        try:
+            # 获取该章节内所有课程
+            data = GetList(
+                userProjectId, code, '3', tenantCode, "", cookie)['data']
+            print("该章节课程: \n", len(data))
+            for course in data:
+                print("---- ", course['resourceName'], end="")
+                if course['finished'] == 1:
+                    print(bcolors.OKGREEN + '已完成' + bcolors.ENDC)
+                else:
+                    print("尝试发送已做完请求....", end="")
+                    try:
+                        doStudy(
+                            userProjectId, course['resourceId', tenantCode, cookie])
+                        finishCourse(
+                            course['userCourseId'], tenantCode, cookie)
+                        delayInt = getRandomTime()
+                        time.sleep(delayInt)
+                    except Exception as e:
+                        print(bcolors.WARNING + "尝试失败 " + bcolors.ENDC, e)
+                    else:
+                        print(bcolors.OKGREEN + "完成该课程" + bcolors.ENDC)
+        except Exception as e:
+            print("章节", name, "失败!\n", e, "\n")
+        else:
+            print("章节", name, "成功!")
 
 
 if __name__ == '__main__':
