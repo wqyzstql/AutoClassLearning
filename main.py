@@ -156,7 +156,7 @@ def getRandomTime():
     return baseDelayTime + random.randint(0, randomDelayDeviation)
 
 
-def doStudy(userProjectId, userCourseId, tenantCode):
+def doStudy(userProjectId, userCourseId, tenantCode, cookie):
     param = {
         'userProjectId': userProjectId,
         'courseId': userCourseId,
@@ -270,7 +270,7 @@ def main():
                     print("尝试发送已做完请求....", end="")
                     try:
                         doStudy(
-                            userProjectId, course['resourceId', tenantCode, cookie])
+                            userProjectId, course['resourceId'], tenantCode, cookie)
                         finishCourse(
                             course['userCourseId'], tenantCode, cookie)
                         delayInt = getRandomTime()
