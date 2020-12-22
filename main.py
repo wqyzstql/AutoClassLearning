@@ -4,7 +4,7 @@ import time  # time.sleep延时
 import os  # 兼容文件系统
 import random
 
-tenantCode = '4143010830'  # 院校ID
+tenantCode = '233333'  # 院校ID
 
 
 def main():
