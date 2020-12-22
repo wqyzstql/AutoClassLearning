@@ -1,10 +1,11 @@
 update:2020.10.19
 用requests库重写了一遍API库,大大提高了运行效率
+update:2020.12.22
+修复报错,加入匹配课程、选修的课程学习
 
 原项目作者已停止维护该项目[原项目地址](https://github.com/WeiYuanStudio/AutoWeiBan)
 由我接手更新了一些API接口和优化了原项目运行效率
-##更新  
-修复报错,加入匹配课程、选修的课程学习
+
 ## 使用方法
 
 1. 首先需要在运行设备上安装Python3运行环境和requests库
