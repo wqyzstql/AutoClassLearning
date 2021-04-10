@@ -19,7 +19,11 @@
 #### 更新日志:
 > 2021.4.10
 增加2021春季课程
+
 旧脚本移至old文件夹
+
 2020.12.22
+
 fork[该项目](https://github.com/WeiYuanStudio/AutoWeiBan)
+
 修复报错,加入匹配课程、选修的课程学习  
