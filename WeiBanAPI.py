@@ -31,6 +31,7 @@ genQRCodeURL = 'https://weiban.mycourse.cn/pharos/login/genBarCodeImageAndCacheU
 
 loginStatusURL = 'https://weiban.mycourse.cn/pharos/login/barCodeWebAutoLogin.do'  # 用于二维码登录刷新登录状态
 
+getStudyTaskURL = 'https://weiban.mycourse.cn/pharos/index/getStudyTask.do'
 
 # 二维码登录
 def qrLogin():
@@ -41,6 +42,8 @@ def qrLogin():
             responseText = getLoginStatus(qrCodeID)
             responseJSON = json.loads(responseText)
             if responseJSON['code'] == '0':
+                responseInfo = getStudyTask(responseJSON['data']['userId'],responseJSON['data']['tenantCode'])
+                responseJSON['data']['normalUserProjectId']=responseInfo['data']['userProjectId']
                 return responseJSON
             else:
                 print('未登录，等待后5s刷新')
@@ -48,6 +51,15 @@ def qrLogin():
     except KeyboardInterrupt:
         print('用户中止程序运行')
 
+def getStudyTask(userId, tenantCode):
+    print('开始请求最新课程: ')
+    param = {
+        'userId': userId,
+        'tenantCode': tenantCode
+    }
+    req = requests.post(url=getStudyTaskURL, data=param)
+    responseJSON = json.loads(req.text)
+    return responseJSON
 
 # 获取学生信息
 def getStuInfo(userId, tenantCode):
