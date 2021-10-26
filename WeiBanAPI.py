@@ -5,9 +5,9 @@ import time
 import requests
 import os
 
-baseDelayTime = 1  # 基础延时秒数
+baseDelayTime = 20  # 基础延时秒数
 
-randomDelayDeviation = 1  # 叠加随机延时差
+randomDelayDeviation = 20  # 叠加随机延时差
 
 getCookiesURL = 'https://weiban.mycourse.cn/#/login'  # 请求Cookies URL
 
@@ -110,8 +110,10 @@ def GetList(userProjectId,  categoryCode ,chooseType, tenantCode, name):
 # 完成课程请求
 def finishCourse(userCourseId, tenantCode):
     param = {
+        'callback':'jQuery0000',
         'userCourseId': userCourseId,
         'tenantCode': tenantCode,
+        '_': '1628328773'
     }
     url_values = parse.urlencode(param)  # GET请求URL参数
     req = requests.get(url=finishCourseURL + '?' + url_values)
@@ -122,11 +124,13 @@ def getRandomTime():
     return baseDelayTime + random.randint(0, randomDelayDeviation)
 
 
-def doStudy(userProjectId, userCourseId, tenantCode):
+def doStudy(userProjectId, userCourseId, tenantCode,userId,token):
     param = {
         'userProjectId': userProjectId,
         'courseId': userCourseId,
-        'tenantCode': tenantCode
+        'tenantCode': tenantCode,
+        'userId': userId,
+        'token': token
     }
     req = requests.post(url=doStudyURL, data=param)
     print(req.text)
